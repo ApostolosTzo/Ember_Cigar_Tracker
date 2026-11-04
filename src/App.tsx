@@ -5,6 +5,8 @@ type View = "Dashboard" | "Calendar" | "Insights" | "Settings"
 type SmokeEvent = { id: string; context: Context; timestamp: string }
 type EventStore = Record<string, SmokeEvent[]>
 
+const viewOrder: View[] = ["Dashboard", "Calendar", "Insights", "Settings"]
+
 const contexts: { name: Context; subtitle: string; icon: IconName }[] = [
   { name: "Home", subtitle: "At your place", icon: "home" },
   { name: "University", subtitle: "On campus", icon: "university" },
@@ -221,6 +223,28 @@ function App() {
     [threshold],
   )
 
+  /* Swipe horizontally on touch screens to move between views. */
+  const touchStart = useRef<{ x: number; y: number } | null>(null)
+
+  const handleTouchStart = (event: React.TouchEvent) => {
+    const touch = event.touches[0]
+    touchStart.current = { x: touch.clientX, y: touch.clientY }
+  }
+
+  const handleTouchEnd = (event: React.TouchEvent) => {
+    const start = touchStart.current
+    touchStart.current = null
+    if (!start) return
+    const touch = event.changedTouches[0]
+    const dx = touch.clientX - start.x
+    const dy = touch.clientY - start.y
+    // Needs to be a real horizontal swipe, not a scroll or a tap.
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return
+    const index = viewOrder.indexOf(view)
+    const next = dx < 0 ? index + 1 : index - 1
+    if (next >= 0 && next < viewOrder.length) setView(viewOrder[next])
+  }
+
   const dayEvents = events[selectedDate] || []
   const todayEvents = events[todayKey] || []
   const selectedCounts = Object.fromEntries(
@@ -313,36 +337,29 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f1e9] text-[#1b2922]">
-      <header className="fixed inset-x-0 top-0 z-40 h-[72px] border-b border-[#d8d2c4] bg-[#faf8f2]/95 backdrop-blur">
-        <div className="flex h-full items-center justify-between px-5 md:px-8">
+    <div
+      className="min-h-screen bg-[#f4f1e9] text-[#1b2922]"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      <header className="fixed inset-x-0 top-0 z-40 h-14 border-b border-[#d8d2c4] bg-[#faf8f2]/95 backdrop-blur">
+        <div className="flex h-full items-center px-5 md:px-8">
           <button
-            className="flex items-center gap-3"
+            className="flex items-center gap-2.5"
             onClick={() => setView("Dashboard")}
             aria-label="Ember home"
           >
-            <span className="grid h-9 w-9 place-items-center rounded-full bg-[#193f31] text-[#f4d9a2]">
-              <Icon name="cigar" size={19} />
+            <span className="grid h-8 w-8 place-items-center rounded-full bg-[#193f31] text-[#f4d9a2]">
+              <Icon name="cigar" size={17} />
             </span>
-            <span className="font-display text-[24px] font-semibold tracking-[-.03em]">
+            <span className="font-display text-[20px] font-semibold tracking-[-.03em]">
               Ember
             </span>
           </button>
-          <div className="flex items-center gap-3">
-            <div className="hidden text-right sm:block">
-              <p className="text-xs font-semibold">Personal tracker</p>
-              <p className="text-[11px] text-[#788078]">
-                Stored on this device
-              </p>
-            </div>
-            <div className="grid h-9 w-9 place-items-center rounded-full bg-[#d7a660] text-xs font-bold text-[#3b2a18]">
-              ET
-            </div>
-          </div>
         </div>
       </header>
 
-      <aside className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#d8d2c4] bg-[#faf8f2] md:bottom-auto md:right-auto md:top-[72px] md:h-[calc(100vh-72px)] md:w-[218px] md:border-r md:border-t-0">
+      <aside className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#d8d2c4] bg-[#faf8f2] md:bottom-auto md:right-auto md:top-14 md:h-[calc(100vh-56px)] md:w-[218px] md:border-r md:border-t-0">
         <nav className="flex items-center justify-around p-2 md:flex-col md:items-stretch md:gap-1 md:p-5">
           {([
             ["Dashboard", "grid"],
@@ -372,7 +389,7 @@ function App() {
         </div>
       </aside>
 
-      <main className="min-h-screen px-5 pb-28 pt-[104px] md:ml-[218px] md:px-8 md:pb-12 lg:px-11">
+      <main className="min-h-screen px-5 pb-28 pt-[88px] md:ml-[218px] md:px-8 md:pb-12 lg:px-11">
         {view === "Dashboard" && (
           <Dashboard
             today={today}
@@ -403,8 +420,6 @@ function App() {
             selectDay={selectDay}
             counts={selectedCounts}
             dayEvents={dayEvents}
-            addEvent={addEvent}
-            removeEvent={removeEvent}
           />
         )}
         {view === "Insights" && (
@@ -838,8 +853,6 @@ type CalendarProps = {
   selectDay: (k: string) => void
   counts: Record<Context, number>
   dayEvents: SmokeEvent[]
-  addEvent: (c: Context) => void
-  removeEvent: (c: Context) => void
 }
 function CalendarView(p: CalendarProps) {
   return (
@@ -878,22 +891,9 @@ function CalendarView(p: CalendarProps) {
               >
                 <Icon name={c.icon} size={16} />
                 <span className="flex-1 text-xs font-bold">{c.name}</span>
-                <button
-                  className="counter-button"
-                  disabled={!p.counts[c.name]}
-                  onClick={() => p.removeEvent(c.name)}
-                >
-                  <Icon name="minus" size={12} />
-                </button>
-                <span className="w-4 text-center text-sm font-bold">
+                <span className="font-display text-lg font-semibold">
                   {p.counts[c.name]}
                 </span>
-                <button
-                  className="counter-button bg-[#1d4938]! text-white!"
-                  onClick={() => p.addEvent(c.name)}
-                >
-                  <Icon name="plus" size={12} />
-                </button>
               </div>
             ))}
           </div>
