@@ -2,7 +2,7 @@
  * Ember service worker — offline-first app shell.
  * Bump VERSION to invalidate every cached asset on a new release.
  */
-const VERSION = "ember-v1"
+const VERSION = "ember-v2"
 
 const CORE_ASSETS = [
   "./",
