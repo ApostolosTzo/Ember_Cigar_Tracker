@@ -2,7 +2,7 @@
  * Ember service worker — offline-first app shell.
  * Bump VERSION to invalidate every cached asset on a new release.
  */
-const VERSION = "ember-v2"
+const VERSION = "ember-v3"
 
 const CORE_ASSETS = [
   "./",
@@ -21,7 +21,17 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(VERSION)
-      .then((cache) => cache.addAll(CORE_ASSETS))
+      .then((cache) =>
+        // cache:'reload' bypasses the HTTP cache, otherwise GitHub Pages'
+        // max-age can fill a brand-new cache with stale files.
+        Promise.allSettled(
+          CORE_ASSETS.map((asset) =>
+            fetch(new Request(asset, { cache: "reload" })).then((res) =>
+              res && res.ok ? cache.put(asset, res) : null,
+            ),
+          ),
+        ),
+      )
       .then(() => self.skipWaiting()),
   )
 })
