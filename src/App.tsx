@@ -143,49 +143,27 @@ const shortDate = (key: string) =>
     day: "numeric",
   })
 
-function seededEvents(): EventStore {
-  const store: EventStore = {}
-  const now = new Date()
-  for (let ago = 1; ago < 92; ago++) {
-    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ago)
-    const wave = Math.sin(ago * 1.71) + Math.cos(ago * 0.43)
-    const count =
-      ago % 7 === 0
-        ? 0
-        : Math.max(
-            0,
-            Math.min(
-              8,
-              Math.round(3.2 + wave * 1.8 + (ago % 11 === 0 ? 2 : 0)),
-            ),
-          )
-    if (!count) continue
-    const key = dateKey(d)
-    store[key] = Array.from({ length: count }, (_, i) => {
-      const hour = [9, 11, 14, 16, 18, 20, 22][(ago + i * 2) % 7]
-      const stamp = new Date(
-        d.getFullYear(),
-        d.getMonth(),
-        d.getDate(),
-        hour,
-        (ago * 7 + i * 13) % 60,
-      )
-      return {
-        id: `${key}-${i}`,
-        context: contexts[(ago + i) % contexts.length].name,
-        timestamp: stamp.toISOString(),
-      }
-    })
-  }
-  return store
-}
-
 function loadEvents(): EventStore {
   try {
     const saved = localStorage.getItem("ember-events")
-    return saved ? JSON.parse(saved) : seededEvents()
+    if (!saved) return {}
+    const store: EventStore = JSON.parse(saved)
+    // Early builds seeded demo entries with date-based ids ("2026-09-01-3");
+    // real entries use UUIDs, so drop the demo data once, silently.
+    let changed = false
+    for (const key of Object.keys(store)) {
+      const list = store[key] ?? []
+      const kept = list.filter(
+        (event) => !/^\d{4}-\d{2}-\d{2}-\d+$/.test(event.id),
+      )
+      if (kept.length !== list.length) changed = true
+      if (kept.length) store[key] = kept
+      else delete store[key]
+    }
+    if (changed) localStorage.setItem("ember-events", JSON.stringify(store))
+    return store
   } catch {
-    return seededEvents()
+    return {}
   }
 }
 
