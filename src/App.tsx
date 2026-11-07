@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 
-type Context = "Home" | "University" | "Out with friends" | "Driving"
+type Context =
+  | "Home"
+  | "University"
+  | "Out with friends"
+  | "Driving"
+  | "Volleyball training"
 type View = "Dashboard" | "Calendar" | "Insights" | "Settings"
 type SmokeEvent = { id: string; context: Context; timestamp: string }
 type EventStore = Record<string, SmokeEvent[]>
@@ -12,9 +17,10 @@ const contexts: { name: Context; subtitle: string; icon: IconName }[] = [
   { name: "University", subtitle: "On campus", icon: "university" },
   { name: "Out with friends", subtitle: "Social occasions", icon: "users" },
   { name: "Driving", subtitle: "On the road", icon: "car" },
+  { name: "Volleyball training", subtitle: "At practice", icon: "volleyball" },
 ]
 
-type IconName = "home" | "university" | "users" | "car" | "grid" | "calendar" | "chart" | "settings" | "cigar" | "chevronLeft" | "chevronRight" | "download" | "upload" | "clock" | "plus" | "minus"
+type IconName = "home" | "university" | "users" | "car" | "volleyball" | "grid" | "calendar" | "chart" | "settings" | "cigar" | "chevronLeft" | "chevronRight" | "download" | "upload" | "clock" | "plus" | "minus"
 
 const iconPaths: Record<IconName, React.ReactNode> = {
   home: (
@@ -44,6 +50,14 @@ const iconPaths: Record<IconName, React.ReactNode> = {
       <path d="M5 17h14v3h-3v-3H8v3H5v-3Z" />
       <circle cx="7.5" cy="12.5" r="1" />
       <circle cx="16.5" cy="12.5" r="1" />
+    </>
+  ),
+  volleyball: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 3c-2.7 3.4-4 6.6-4 9s1.3 5.6 4 9" />
+      <path d="M12 3c3.6 3.8 5.8 8.4 6.4 15.4" />
+      <path d="M5.6 18.4c1.8.6 4.2 1.2 6.4 2.6" />
     </>
   ),
   grid: (
@@ -539,7 +553,7 @@ function Dashboard(p: DashboardProps) {
             recorded
           </span>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {contexts.map((context) => (
             <CounterCard
               key={context.name}
